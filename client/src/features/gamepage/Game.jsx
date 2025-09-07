@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 
 export default function Game({ playerCount = 4, socket = null, playerId = null }) {
   const tileCount = playerCount * 3;
@@ -12,46 +13,37 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
+  // this would run every time Game is mounted... which is dumb
+  // const socketroom = io('http://localhost:4000'); // Replace with your server URL
+  // socketroom.on('connect', () => {
+  //   console.log('Connected to server with ID:', socketroom.id);
+  //   // test msg
+  //   sendChat("Hello from " + socketroom.id);
+  // });
+
+  // instead useEffect instead
+
+  useEffect(() => {
+    const socket = io('http://localhost:4000'); // Replace with your server URL
+
+    socket.on('connect', () => {
+      console.log('Connected to server with ID:', socket.id);
+      // test msg
+      sendChat("Hello as " + socket.id);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   // compute grid columns dynamically (square-ish grid)
   const gridCols = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tileCount));
     return Math.min(Math.max(cols, 3), 6); // clamp between 3 and 6
   }, [tileCount]);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleInit = (payload) => {
-      if (payload.tiles) setTiles(payload.tiles.map(t => ({ ...t, revealed: !!t.revealed })));
-      if (typeof payload.pot === 'number') setPot(payload.pot);
-      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
-    };
-
-    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot }) => {
-      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, revealed: true, type, revealedBy } : t));
-      if (typeof newPot === 'number') setPot(newPot);
-      setLoadingPick(false);
-    };
-
-    const handleGameUpdate = (payload) => {
-      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
-      if (typeof payload.pot === 'number') setPot(payload.pot);
-    };
-
-    const handleChat = (msg) => setMessages(prev => [...prev, msg]);
-
-    socket.on('game:init', handleInit);
-    socket.on('tile:revealed', handleTileRevealed);
-    socket.on('game:update', handleGameUpdate);
-    socket.on('chat:message', handleChat);
-
-    return () => {
-      socket.off('game:init', handleInit);
-      socket.off('tile:revealed', handleTileRevealed);
-      socket.off('game:update', handleGameUpdate);
-      socket.off('chat:message', handleChat);
-    };
-  }, [socket]);
+  
 
   const handlePick = (tile) => {
     // prevent picking if already revealed or not your turn or currently picking
@@ -61,7 +53,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     setLoadingPick(true);
     // send to server -- server should validate turn and broadcast tile:revealed
     if (socket) {
-      socket.emit('pick:tile', { tileId: tile.id });
+      console.log("Emitting pick for tile:", tile.id);
     } else {
       // Local demo fallback: reveal a random outcome after delay
       setTimeout(() => {
@@ -75,13 +67,14 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     }
   };
 
-  const sendChat = () => {
-    const text = chatInput.trim();
+  const sendChat = (msg) => {
+    const text = msg || chatInput.trim();
     if (!text) return;
     if (socket) socket.emit('chat:send', { text });
     else setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
     setChatInput('');
   };
+
 
   const navigate = useNavigate();
   const handleLeave = () => {
