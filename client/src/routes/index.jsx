@@ -3,6 +3,7 @@ import MainLayout from '../layouts/MainLayout'
 import Homepage from '../features/homepage/page/Homepage'
 import Lobby from '../features/lobby/Lobby'
 import Game from '../features/gamepage/Game'
+import GamePage from '../features/gamepage/GamePage'
 
 export function AppRoutes() {
   return (
@@ -10,7 +11,7 @@ export function AppRoutes() {
             <Route element={<MainLayout />}>
                 <Route path="/" element={<Homepage />} />
                 <Route path="/lobby" element={<Lobby />} />
-                <Route path="/game" element={<Game />} />
+                <Route path="/game" element={<GamePage />} />
             </Route>
             <Route path="*" element={<h1>404</h1>} />
         </Routes>

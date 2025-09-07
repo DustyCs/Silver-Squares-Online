@@ -23,19 +23,22 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
 
   // instead useEffect instead
 
-  useEffect(() => {
-    const socket = io('http://localhost:4000'); // Replace with your server URL
+  // useEffect(() => {
+  //   const socket = io('http://localhost:4000'); // Replace with your server URL
+    
 
-    socket.on('connect', () => {
-      console.log('Connected to server with ID:', socket.id);
-      // test msg
-      sendChat("Hello as " + socket.id);
-    });
+  //   socket.on('connect', () => {
+  //     console.log('Connected to server with ID:', socket.id);
+  //     // test msg
+  //     sendChat("Hello as " + socket.id);
+  //   });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+  //   // socket.emit('hello-event-me', 10, 'hi', { a: 1, b: '2' }); // parameters = event name, arguments
+
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // }, []);
 
   // compute grid columns dynamically (square-ish grid)
   const gridCols = useMemo(() => {
@@ -43,6 +46,13 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     return Math.min(Math.max(cols, 3), 6); // clamp between 3 and 6
   }, [tileCount]);
 
+  socket.on('connect', () => {
+    console.log('Connected to server with ID:', socket.id);
+    // test msg
+    sendChat("Hello as " + socket.id);
+  });
+
+  
   
 
   const handlePick = (tile) => {
@@ -74,7 +84,6 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     else setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
     setChatInput('');
   };
-
 
   const navigate = useNavigate();
   const handleLeave = () => {

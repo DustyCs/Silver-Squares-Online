@@ -21,7 +21,13 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
+  // socket.on("hello-event-me", (number: number, string: string, obj: object) => console.log(number, string, obj))
+  socket.on("send:msg", (msg) => {
+    console.log("Received message from", socket.id, ":", msg);
+    io.emit("receive:msg", msg);
+  });
 });
+
 
 
 app.use(express.json());
