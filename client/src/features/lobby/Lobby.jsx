@@ -1,34 +1,146 @@
-export default function Lobby() {
-    const players = [
-        { id: 1, name: 'Player 1' },
-        { id: 2, name: 'Player 2' },
-        { id: 3, name: 'Player 3' },
-        { id: 4, name: 'Player 4' },
-    ]
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-  return (
-    <div>
-        <h1>Lobby</h1>
-        <div>
-            <div>
-                {
-                    players.map(player => (
-                        <div key={player.id}>
-                            <span>{player.name}</span>
+export default function Lobby({
+  initialPlayers = [
+    { id: 1, name: "Player 1" },
+    { id: 2, name: "Player 2" },
+    { id: 3, name: "Player 3" },
+    { id: 4, name: "Player 4" },
+  ],
+  roomCode = "ABCD",
+  isHost = false,
+  socket = null,
+  onStart = null,
+  onLeave = null,
+}) {
+    const [players, setPlayers] = useState(initialPlayers);
+    const [copied, setCopied] = useState(false);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleLobbyUpdate = (lobbyState) => {
+            console.log("Lobby update:");
+        };
+
+        const handlePlayerJoin = (player) => {
+            console.log("Player joined:");
+        };
+
+        const handlePlayerLeave = (playerId) => {
+            console.log("Player left:");
+        };
+
+        return () => {
+        console.log("Cleanup socket listeners");
+        };
+    }, [socket]);
+
+    const copyRoomCode = async () => {
+        try {
+        await navigator.clipboard.writeText(roomCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+        } catch (e) {
+        console.error("Copy failed", e);
+        }
+    };
+
+    const handleStart = () => {
+        navigate('/game'); // test
+        console.log("Start game")
+    };
+
+    const handleLeave = () => {
+        navigate('/');
+        console.log("Leave game");
+    };
+
+    return (
+        <div className="max-w-5xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-center mb-6">Lobby</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl shadow p-4 flex flex-col">
+            <h2 className="text-xl font-semibold mb-3">Players</h2>
+            <div className="flex-1 overflow-auto">
+                <ul className="space-y-2">
+                {players.map((player, idx) => (
+                    <li
+                    key={player.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center font-medium">
+                        {String(idx + 1)}
                         </div>
-                    ))
-                }
+                        <span className="font-medium">{player.name}</span>
+                    </div>
+                    {/* Host badge */}
+                    {idx === 0 && (
+                        <span className="text-sm px-2 py-1 bg-yellow-100 rounded-full">Host</span>
+                    )}
+                    </li>
+                ))}
+                </ul>
             </div>
+            <div className="mt-4 text-sm text-gray-500">{players.length} player(s) — waiting for more...</div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow p-4 flex flex-col justify-between">
             <div>
+                <div className="flex items-center justify-between mb-4">
                 <div>
-                    <span>Room Code: ABCD</span>
-                    <h3>Is it a SILVER SQUARE?</h3>
-                    <div ></div>
+                    <div className="text-xs uppercase text-gray-400">Room Code</div>
+                    <div className="flex items-center gap-3 mt-2">
+                    <div className="px-3 py-2 bg-gray-100 rounded-md font-mono text-lg">{roomCode}</div>
+                    <button
+                        onClick={copyRoomCode}
+                        className="px-3 py-2 border rounded-md text-sm hover:bg-gray-50"
+                        aria-label="Copy room code"
+                    >
+                        {copied ? "Copied" : "Copy"}
+                    </button>
+                    </div>
                 </div>
-                <button>Start Game</button>
-                <button>Leave Game</button>
+                <div className="text-right">
+                    <div className="text-sm text-gray-500">Players</div>
+                    <div className="text-2xl font-bold">{players.length}</div>
+                </div>
+                </div>
+
+                <div className="mt-6 p-4 border rounded-lg text-center">
+                <h3 className="text-lg font-semibold mb-2">IS IT A SILVER SQUARE?</h3>
+                <p className="text-gray-500 mb-3">Pick squares to build the pot. Discuss and vote when prompted.</p>
+                <div className="h-12 w-full bg-gray-50 rounded-md flex items-center justify-center text-sm text-gray-400">Waiting for game to start</div>
+                </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+                <button
+                onClick={handleStart}
+                //   disabled={!isHost} // Uncomment to restrict to host only
+                className={`flex-1 py-3 rounded-lg font-semibold transition-transform active:scale-95 disabled:opacity-50 ${
+                    isHost ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-600"
+                }`}
+                >
+                Start Game
+                </button>
+
+                <button
+                onClick={handleLeave}
+                className="flex-1 py-3 rounded-lg font-semibold border border-gray-300"
+                >
+                Leave Game
+                </button>
+            </div>
             </div>
         </div>
-    </div>
-  )
-}
+
+        {/* Mobile hint */}
+        <div className="mt-6 text-center text-sm text-gray-500">Tip: open on desktop for the best experience; responsive for mobile.</div>
+        </div>
+    );
+    }
