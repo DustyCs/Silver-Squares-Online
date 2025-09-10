@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSocket } from "../../contexts/useSocket";
+import cryptoRandomString from 'crypto-random-string';
+
+const useQuery = () => {
+    return new URLSearchParams(useLocation().search);
+}
 
 export default function Lobby({
   initialPlayers = [
@@ -8,15 +14,30 @@ export default function Lobby({
     { id: 3, name: "Player 3" },
     { id: 4, name: "Player 4" },
   ],
-  roomCode = "ABCD",
-  isHost = false,
-  socket = null,
-  onStart = null,
-  onLeave = null,
+  isHost = false
 }) {
     const [players, setPlayers] = useState(initialPlayers);
     const [copied, setCopied] = useState(false);
+    
+
     const navigate = useNavigate();
+    const query = useQuery();
+    const [roomCode, setRoomCode] = useState(query.get("roomCode") || null);
+
+    const socket = useSocket();
+
+    useEffect(() => {
+        if (!socket) return;
+        if (roomCode) {
+            socket.emit("game:join", { roomId: roomCode });
+            return;
+        } else {
+            const code = cryptoRandomString({ length: 4 })
+            setRoomCode(code);
+            console.log("Room code:", code); 
+            socket.emit("game:create", { roomId: roomCode });
+        }
+    }, []);
 
     useEffect(() => {
         if (!socket) return;
@@ -32,6 +53,10 @@ export default function Lobby({
         const handlePlayerLeave = (playerId) => {
             console.log("Player left:");
         };
+        
+        socket.on("lobby:update", handleLobbyUpdate);
+        socket.on("player:join", handlePlayerJoin);
+        socket.on("player:leave", handlePlayerLeave);
 
         return () => {
         console.log("Cleanup socket listeners");
@@ -138,8 +163,6 @@ export default function Lobby({
             </div>
             </div>
         </div>
-
-        {/* Mobile hint */}
         <div className="mt-6 text-center text-sm text-gray-500">Tip: open on desktop for the best experience; responsive for mobile.</div>
         </div>
     );

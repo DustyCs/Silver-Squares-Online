@@ -21,10 +21,9 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  // socket.on("hello-event-me", (number: number, string: string, obj: object) => console.log(number, string, obj))
-  socket.on("send:msg", (msg) => {
+  socket.on("chat:send", (msg) => {
     console.log("Received message from", socket.id, ":", msg);
-    io.emit("receive:msg", msg);
+    io.emit("chat:message", { id: Date.now(), author: socket.id, text: msg.text, time: new Date().toISOString() }); // msg is received as an object {text: "..."} from client so unpack it
   });
 });
 

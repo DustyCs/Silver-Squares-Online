@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
 
 export default function Game({ playerCount = 4, socket = null, playerId = null }) {
   const tileCount = playerCount * 3;
@@ -13,59 +12,59 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
-  // this would run every time Game is mounted... which is dumb
-  // const socketroom = io('http://localhost:4000'); // Replace with your server URL
-  // socketroom.on('connect', () => {
-  //   console.log('Connected to server with ID:', socketroom.id);
-  //   // test msg
-  //   sendChat("Hello from " + socketroom.id);
-  // });
+  const [turns, setTurns] = useState(0);
+  const navigate = useNavigate();
 
-  // instead useEffect instead
+  // socket = null // testing
 
-  // useEffect(() => {
-  //   const socket = io('http://localhost:4000'); // Replace with your server URL
-    
-
-  //   socket.on('connect', () => {
-  //     console.log('Connected to server with ID:', socket.id);
-  //     // test msg
-  //     sendChat("Hello as " + socket.id);
-  //   });
-
-  //   // socket.emit('hello-event-me', 10, 'hi', { a: 1, b: '2' }); // parameters = event name, arguments
-
-  //   return () => {
-  //     socket.disconnect();
-  //   };
-  // }, []);
-
-  // compute grid columns dynamically (square-ish grid)
   const gridCols = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tileCount));
     return Math.min(Math.max(cols, 3), 6); // clamp between 3 and 6
   }, [tileCount]);
 
-  socket.on('connect', () => {
-    console.log('Connected to server with ID:', socket.id);
-    // test msg
-    sendChat("Hello as " + socket.id);
-  });
+  useEffect(() => {
+    if (!socket) return; 
 
-  
-  
+    const handleInit = (payload) => {
+      if (payload.tiles) setTiles(payload.tiles.map(t => ({ ...t, revealed: !!t.revealed })));
+      if (typeof payload.pot === 'number') setPot(payload.pot);
+      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
+    };
+
+    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot }) => {
+      setTiles(prev => prev.map(t => t.id === tileId ? { ...t, revealed: true, type, revealedBy } : t));
+      if (typeof newPot === 'number') setPot(newPot);
+      setLoadingPick(false);
+    };
+
+    const handleGameUpdate = (payload) => {
+      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
+      if (typeof payload.pot === 'number') setPot(payload.pot);
+    };
+    // setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
+    const handleChat = (msg) => setMessages(prev => [...prev, msg]);
+
+    socket.on('game:init', handleInit);
+    socket.on('tile:revealed', handleTileRevealed);
+    socket.on('game:update', handleGameUpdate);
+    socket.on('chat:message', handleChat);
+
+    return () => {
+      socket.off('game:init', handleInit);
+      socket.off('tile:revealed', handleTileRevealed);
+      socket.off('game:update', handleGameUpdate);
+      socket.off('chat:message', handleChat);
+    };
+  }, [socket]);
 
   const handlePick = (tile) => {
-    // prevent picking if already revealed or not your turn or currently picking
     if (tile.revealed || loadingPick) return;
     if (currentPlayerId && playerId && currentPlayerId !== playerId) return;
 
     setLoadingPick(true);
-    // send to server -- server should validate turn and broadcast tile:revealed
     if (socket) {
-      console.log("Emitting pick for tile:", tile.id);
+      socket.emit('pick:tile', { tileId: tile.id });
     } else {
-      // Local demo fallback: reveal a random outcome after delay
       setTimeout(() => {
         const outcomes = ['silver', 'black', 'empty', 'bonus'];
         const type = outcomes[Math.floor(Math.random() * outcomes.length)];
@@ -77,19 +76,13 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     }
   };
 
-  const sendChat = (msg) => {
-    const text = msg || chatInput.trim();
+  const sendChat = () => {
+    const text = chatInput.trim();
     if (!text) return;
     if (socket) socket.emit('chat:send', { text });
     else setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
     setChatInput('');
   };
-
-  const navigate = useNavigate();
-  const handleLeave = () => {
-    navigate('/');
-    console.log("Leave game");
-  }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -116,6 +109,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
                   tile.revealed ? 'bg-gray-50 cursor-default' : 'bg-white hover:shadow'
                 }`}
               >
+
                 {!tile.revealed && (
                   <div className="text-sm font-medium text-gray-500">{tile.id}</div>
                 )}
@@ -142,7 +136,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
         <div className="w-full md:w-96 flex flex-col">
           <h2 className="text-lg font-semibold mb-3">Player Chat</h2>
           <div className="flex-1 border rounded-lg p-2 mb-2 overflow-auto h-72">
-            {messages.length === 0 && <div className="text-sm text-gray-400">No messages yet — say Hi!</div>}
+            {messages.length === 0 && <div className="text-sm text-gray-400">No messages yet — say hi 👋</div>}
             <ul className="space-y-2">
               {messages.map((m) => (
                 <li key={m.id} className="text-sm">
@@ -163,8 +157,8 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
               className="flex-1 border rounded-md p-2"
               placeholder="Type a message..."
             />
-            <button onClick={sendChat} className="px-2 py-2 bg-blue-600 text-white rounded-md">Send</button>
-            <button onClick={handleLeave} className="px-2 py-2 bg-red-600 text-white rounded-md">Quit Game</button>
+            <button onClick={sendChat} className="px-4 py-2 bg-blue-600 text-white rounded-md">Send</button>
+            <button onClick={() => navigate('/lobby')} className="px-4 py-2 bg-red-600 text-white rounded-md">Quit</button>
           </div>
         </div>
       </div>

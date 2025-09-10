@@ -1,10 +1,13 @@
 import { BrowserRouter } from 'react-router-dom';
 import { AppRoutes } from './routes/index';
+import { SocketProvider } from './contexts/useSocket';
 
 function App() {
   return (
     <BrowserRouter>
-        <AppRoutes />
+        <SocketProvider>
+          <AppRoutes />
+        </SocketProvider>
     </BrowserRouter>
   )
 }

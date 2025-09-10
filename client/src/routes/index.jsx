@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Homepage from '../features/homepage/page/Homepage'
 import Lobby from '../features/lobby/Lobby'
-import Game from '../features/gamepage/Game'
 import GamePage from '../features/gamepage/GamePage'
 
 export function AppRoutes() {
