@@ -19,13 +19,13 @@ export function SocketProvider({ children }) {
 
     // Debug logs
     newSocket.on("connect", () => {
-      console.log("✅ Connected:", newSocket.id);
+      console.log("Connected:", newSocket.id);
     });
     newSocket.on("disconnect", (reason) => {
-      console.log("❌ Disconnected:", reason);
+      console.log("Disconnected:", reason);
     });
     newSocket.on("connect_error", (err) => {
-      console.error("⚠️ Connection error:", err.message);
+      console.error("Connection error:", err.message);
     });
 
     setSocket(newSocket);
@@ -37,7 +37,7 @@ export function SocketProvider({ children }) {
 
   return (
     <SocketContext.Provider value={socket}>
-      {socket ? children : <div>Loading...</div>}
+      {socket ? children : null}
     </SocketContext.Provider>
   );
 }

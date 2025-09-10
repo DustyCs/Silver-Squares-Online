@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
+const useQuery = () => {
+    return new URLSearchParams(useLocation().search);
+}
 
 export default function Game({ playerCount = 4, socket = null, playerId = null }) {
   const tileCount = playerCount * 3;
@@ -14,6 +18,8 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
 
   const [turns, setTurns] = useState(0);
   const navigate = useNavigate();
+  const query = useQuery();
+  const [roomCode] = useState(query.get("roomCode") || null);
 
   // socket = null // testing
 
@@ -42,7 +48,10 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
       if (typeof payload.pot === 'number') setPot(payload.pot);
     };
     // setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
-    const handleChat = (msg) => setMessages(prev => [...prev, msg]);
+    const handleChat = (msg) => {
+      console.log("Received message:", msg);
+      setMessages(prev => [...prev, msg])
+    };
 
     socket.on('game:init', handleInit);
     socket.on('tile:revealed', handleTileRevealed);
@@ -79,7 +88,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   const sendChat = () => {
     const text = chatInput.trim();
     if (!text) return;
-    if (socket) socket.emit('chat:send', { text });
+    if (socket) socket.emit('chat:send', { text, roomCode });
     else setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
     setChatInput('');
   };

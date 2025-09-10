@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSocket } from "../../contexts/useSocket";
 import cryptoRandomString from 'crypto-random-string';
 
-const useQuery = () => {
+const useQuery = () => { // make this a custom hook
     return new URLSearchParams(useLocation().search);
 }
 
@@ -29,13 +29,13 @@ export default function Lobby({
     useEffect(() => {
         if (!socket) return;
         if (roomCode) {
-            socket.emit("game:join", { roomId: roomCode }); 
+            socket.emit("game:join", { roomCode: roomCode }, () => { console.log("Room joined") }); 
             return;
         } else {
             const code = cryptoRandomString({ length: 4 }) // this should be handled by the backend but for now we'll do it here
             setRoomCode(code);
             console.log("Room code:", code); 
-            socket.emit("game:create", { roomId: roomCode }, () => { console.log("Room created") });
+            socket.emit("game:create", { roomCode: code }, () => { console.log("Room created") }); // why im i passing this as an object...?
         }
     }, []);
 
@@ -76,7 +76,7 @@ export default function Lobby({
     };
 
     const handleStart = () => {
-        navigate('/game'); // test
+        navigate('/game?roomCode=' + roomCode);
         console.log("Start game")
     };
 
