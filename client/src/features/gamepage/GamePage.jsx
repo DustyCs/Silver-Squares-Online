@@ -9,24 +9,6 @@ import { useSocket } from "../../contexts/useSocket";
 export default function GamePage() {
   const socket = useSocket();
 
-  // useEffect(() => {
-  //   socket.emit("joinRoom", { roomCode: "ABCD", playerId: "p1" }); // problem with socket fix it first
-  // }, []);
-
-  // useEffect(() => {
-  //   if (!socket) return;
-  //   if (!socket.connected) {
-  //     socket.on("connect", () => {
-  //       socket.emit("game:join", { roomId: "ABCD", playerId: "p1" });
-  //     });
-  //   } else {
-  //     socket.emit("game:join", { roomId: "ABCD", playerId: "p1" });
-  //   }
-  //   return () => {
-  //     socket.off("connect");
-  //   };
-  // }, [socket]);
-
   return (
     <div className="min-h-screen bg-gray-100">
       <VoteOut />
