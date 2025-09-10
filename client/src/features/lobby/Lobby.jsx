@@ -31,7 +31,7 @@ export default function Lobby({
         if (roomCode) {
             socket.emit("game:join", { roomCode: roomCode, playerId: socket.id }, () => { console.log("Room joined") }); 
             return;
-        } else {
+        } else { // yes i know how bad this is but i did it cause i can
             const code = cryptoRandomString({ length: 4 }) // this should be handled by the backend but for now we'll do it here
             setRoomCode(code);
             console.log("Room code:", code); 
@@ -63,11 +63,13 @@ export default function Lobby({
         socket.on("lobby:update", handleLobbyUpdate);
         socket.on("player:join", handlePlayerJoin);
         socket.on("player:leave", handlePlayerLeave);
+        socket.on("game:start", () => navigate('/game?roomCode=' + roomCode));
 
         return () => {
         console.log("Cleanup socket listeners");
         };
-    }, [socket]);
+    }, [socket, roomCode]);
+
 
     const copyRoomCode = async () => {
         try {
@@ -80,13 +82,14 @@ export default function Lobby({
     };
 
     const handleStart = () => {
-        navigate('/game?roomCode=' + roomCode);
+        if (!roomCode) return;
+        // navigate('/game?roomCode=' + roomCode);
+        socket.emit("host:start", { roomCode: roomCode });
         console.log("Start game")
     };
 
     const handleLeave = () => {
         navigate('/');
-        // socket.emit("game:leave", { roomId: roomCode }); // backend handles this?
         console.log("Leave game");
     };
 

@@ -60,6 +60,11 @@ io.on("connection", (socket) => {
     if (typeof callback === "function") callback();
   });
 
+  socket.on("host:start", ({roomCode}) => {
+    console.log("Starting the game in room", roomCode)
+    io.to(roomCode).emit("game:start");
+  });
+
   socket.on("disconnect", () => {
     for(const [roomCode, players] of Object.entries(lobbies)) {
       if (players.includes(socket.id)) {
