@@ -29,13 +29,13 @@ export default function Lobby({
     useEffect(() => {
         if (!socket) return;
         if (roomCode) {
-            socket.emit("game:join", { roomId: roomCode });
+            socket.emit("game:join", { roomId: roomCode }); 
             return;
         } else {
-            const code = cryptoRandomString({ length: 4 })
+            const code = cryptoRandomString({ length: 4 }) // this should be handled by the backend but for now we'll do it here
             setRoomCode(code);
             console.log("Room code:", code); 
-            socket.emit("game:create", { roomId: roomCode });
+            socket.emit("game:create", { roomId: roomCode }, () => { console.log("Room created") });
         }
     }, []);
 
@@ -48,10 +48,12 @@ export default function Lobby({
 
         const handlePlayerJoin = (player) => {
             console.log("Player joined:");
+            setPlayers((prevPlayers) => [...prevPlayers, player]);
         };
 
         const handlePlayerLeave = (playerId) => {
             console.log("Player left:");
+            setPlayers((prevPlayers) => prevPlayers.filter((p) => p.id !== playerId));
         };
         
         socket.on("lobby:update", handleLobbyUpdate);
@@ -80,6 +82,7 @@ export default function Lobby({
 
     const handleLeave = () => {
         navigate('/');
+        // socket.emit("game:leave", { roomId: roomCode }); // backend handles this?
         console.log("Leave game");
     };
 

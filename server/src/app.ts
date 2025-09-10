@@ -14,17 +14,28 @@ console.log("Setting up socket.io server...")
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"]
-  }
+  },
+  allowEIO3: true
 });
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
+  
   socket.on("chat:send", (msg) => {
     console.log("Received message from", socket.id, ":", msg);
     io.emit("chat:message", { id: Date.now(), author: socket.id, text: msg.text, time: new Date().toISOString() }); // msg is received as an object {text: "..."} from client so unpack it
   });
+
+  socket.on("game:create", (roomCode) => {
+    console.log("Creating game in room", roomCode)
+  });
+
+  socket.on("game:join", (roomCode) => {
+    console.log("Joining game in room", roomCode)
+  });
+
 });
 
 

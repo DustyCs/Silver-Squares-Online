@@ -4,11 +4,11 @@ import { SocketProvider } from './contexts/useSocket';
 
 function App() {
   return (
-    <BrowserRouter>
-        <SocketProvider>
+    <SocketProvider>
+      <BrowserRouter>
           <AppRoutes />
-        </SocketProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </SocketProvider>
   )
 }
 
