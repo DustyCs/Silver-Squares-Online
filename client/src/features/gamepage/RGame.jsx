@@ -34,7 +34,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   useEffect(() => {
     console.log(socket.id, host);
     if (socket.id === host) {
-      socket.emit("game:start", { roomCode, players });
+      socket.emit("game:start", { roomCode, players: players.map(p => p.id) });
     }
   }, []);
 
@@ -45,6 +45,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
     const handleInit = (payload) => {
       if (payload.tiles) setTiles(payload.tiles.map(t => ({ ...t, revealed: !!t.revealed })));
       if (typeof payload.pot === 'number') setPot(payload.pot);
+      // TODO THIS CAUSES PROBLEMS
       if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId); // need to fix this yes so the first player is random
     };
 
@@ -153,7 +154,12 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
             ))}
           </div>
 
-          <div className="mt-4 text-sm text-gray-500">Current turn: {currentPlayerId || 'waiting...'}</div>
+          {/* <div className="mt-4 text-sm text-gray-500">Current turn: {currentPlayerId || 'waiting...'}</div> */}
+          <div className="mt-4 text-sm text-gray-500">
+            Current turn: {
+              players.find(p => p.id === currentPlayerId)?.name || currentPlayerId || 'waiting...'
+            }
+          </div>
         </div>
 
         <div className="w-full md:w-96 flex flex-col">

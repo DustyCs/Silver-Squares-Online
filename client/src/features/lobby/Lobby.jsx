@@ -48,7 +48,11 @@ export default function Lobby({
 
         const handleLobbyUpdate = ({ players, host }) => {
                 console.log("Lobby update:", players, host);
-                setPlayers(players.map((id, idx) => ({ id, name: `Player ${idx + 1}` })));
+                // setPlayers(players.map((id, idx) => ({ id, name: `Player ${idx + 1}` })));
+                setPlayers(players.map((id, idx) => ({
+                    id, 
+                    name: `Player ${idx + 1}`
+                })));
                 setHost(host);
             };
 
@@ -102,7 +106,7 @@ export default function Lobby({
 
     const handleStart = () => {
         if (!roomCode) return;
-        // navigate('/game?roomCode=' + roomCode);
+        navigate('/game?roomCode=' + roomCode);
         socket.emit("host:start", { roomCode: roomCode });
         console.log("Start game")
     };
@@ -130,7 +134,7 @@ export default function Lobby({
                         <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center font-medium">
                         {String(idx + 1)}
                         </div>
-                        <span className="font-medium">{player.id}</span>
+                        <span className="font-medium">{player.name}</span>
                     </div>
                     {/* Host badge */}
                     {player.id === host && (

@@ -11,11 +11,11 @@ type Game = {
   pot: number,
   tiles: Tiles[],
   currentPlayerId: string,
-  turns: number
+  // turns: number
 }
 
 type Tiles = {
-  tileId: number,
+  id: number,
   type: "silver" | "black" | "empty" | "bonus",
   revealed: boolean,
   revealedBy?: string
@@ -88,28 +88,48 @@ io.on("connection", (socket) => {
 
     // create a tile set for this game
     const tileCount = players.length * 3; // 3 tiles per player
-    const tiles = Array.from({ length: tileCount }, (_, i) => ({
+    const tiles: Tiles[] = Array.from({ length: tileCount }, (_, i) => ({
       id: i + 1,
-      type: null,       // type hidden until revealed
+      type: "silver",       // type hidden until revealed
       revealed: false,  // nothing revealed at start
     }));
 
     // choose random first player
     const currentPlayerId = players[Math.floor(Math.random() * players.length)];
 
-    const payload = { 
-      host: lobbies[roomCode][0], pot: 0, tiles, turns: 0, currentPlayerId 
-    };
+    // const payload = { 
+    //   host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId 
+    // };
 
-    io.to(roomCode).emit("game:init", payload);
+    // save game state
+    games[roomCode] = { roomCode, players, host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId };
+
+    io.to(roomCode).emit("game:init", games[roomCode]);
 
   })
 
   socket.on("pick:tile", ({tileId, roomCode, pot}) => {
+    const game = games[roomCode];
+    if (!game) return;
     if (!lobbies[roomCode]) return;
-    // tileId, type, revealedBy, pot: newPot
-    io.to(roomCode).emit("tile:revealed", { tileId, type: "silver", revealedBy: socket.id, pot: pot + 100 });
-    console.log("Picking tile", tileId, roomCode, pot);
+
+    const tile = game.tiles.find(t => t.id === tileId);
+    if (!tile || tile.revealed) return;
+
+    // silver for now
+    tile.type = "silver";
+    tile.revealed = true;
+    tile.revealedBy = socket.id;
+    game.pot += 100;
+
+    // next player
+
+    const currentindex = game.players.indexOf(socket.id);
+    const nextindex = (currentindex + 1) % game.players.length;
+    game.currentPlayerId = game.players[nextindex];
+
+    io.to(roomCode).emit("tile:revealed", { tileId, type: tile.type, revealedBy: tile.revealedBy, pot: game.pot, currentPlayerId: game.currentPlayerId });
+    console.log("Picking tile", tileId, roomCode, game.pot, game.currentPlayerId);
   
   })
 
