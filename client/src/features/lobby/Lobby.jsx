@@ -85,7 +85,7 @@ export default function Lobby({
     }, [socket, roomCode, players]);
 
 
-    useEffect(() => {
+    useEffect(() => { // this doesnt really have to be in useeffect ? unless i have some side effects
         console.log("Players state updated:", players);
         console.log("Host state updated:", host);
 
@@ -201,9 +201,3 @@ export default function Lobby({
         </div>
     );
     }
-
-
-    // TODO
-    // MAKE ONLY HOST COULD START CAUSE RN EVERYONE CAN
-    // HOST CANT SEE THE ROOM CODE ON LOBBY URL NEED FIX
-    // MORE GAME CORES TOMMOROW

@@ -54,7 +54,9 @@ io.on("connection", (socket) => {
 
     if (!lobbies[roomCode]) lobbies[roomCode] = [];
 
-    lobbies[roomCode].push(data.playerId);
+    // lobbies[roomCode].push(data.playerId);
+    // send server socket id instead 
+    if (!lobbies[roomCode].includes(socket.id)) lobbies[roomCode].push(socket.id);
 
     // update lobby state
     io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); // the first player is the host
