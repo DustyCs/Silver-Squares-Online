@@ -79,10 +79,17 @@ io.on("connection", (socket) => {
     if (!lobbies[roomCode]) lobbies[roomCode] = [];
     // send server socket id instead 
 
-    if (!games[roomCode].players.includes(socket.id)) {
-      socket.emit("game:notfound"); // client navigates back to /
-      return;
+    // if (!lobbies[roomCode].includes(socket.id)) {
+    //   socket.emit("game:notfound"); // client navigates back to /
+    //   return;
+    // }
+    if (games[roomCode]) {
+      if (!games[roomCode].players.includes(socket.id)) {
+        socket.emit("game:notfound"); // client navigates back to /
+        return;
+      }
     }
+
     if (!lobbies[roomCode].includes(socket.id)) lobbies[roomCode].push(socket.id);
     io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); 
     
@@ -172,8 +179,6 @@ io.on("connection", (socket) => {
         // update lobby state
 
         io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); // the first player is the host
-        socket.emit("force:redirect", { to: "/" });
-        socket.disconnect();
       }
     }
 

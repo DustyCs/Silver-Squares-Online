@@ -52,6 +52,7 @@ export default function Game({ playerCount = 4, socket = null }) {
     socket.on("game:notfound", () => {
       console.log("Room not found, redirecting...");
       navigate("/");
+      alert("You have been disconnected from the game."); // temp
     });
 
     return () => {
