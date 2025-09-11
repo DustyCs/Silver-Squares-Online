@@ -190,7 +190,7 @@ export default function Game({ playerCount = 4, socket = null }) {
 
         <div className="w-full md:w-96 flex flex-col">
           <h2 className="text-lg font-semibold mb-3">Player Chat</h2>
-          <div className="flex-1 border rounded-lg p-2 mb-2 overflow-auto h-72">
+          {/* <div className="flex-1 border rounded-lg p-2 mb-2 overflow-auto h-72">
             {messages.length === 0 && <div className="text-sm text-gray-400">No messages yet — say hi 👋</div>}
             <ul className="space-y-2">
               {messages.map((m) => (
@@ -198,6 +198,22 @@ export default function Game({ playerCount = 4, socket = null }) {
                   <div className="font-medium text-gray-700">{m.author}</div>
                   <div className="text-gray-700">{m.text}</div>
                   <div className="text-xs text-gray-400">{new Date(m.time || Date.now()).toLocaleTimeString()}</div>
+                </li>
+              ))}
+            </ul>
+          </div> */}
+          <div className="border rounded-lg p-2 mb-2 h-72 overflow-y-auto custom-scroll">
+            {messages.length === 0 && (
+              <div className="text-sm text-gray-400">No messages yet — say hi 👋</div>
+            )}
+            <ul className="space-y-2">
+              {messages.map((m) => (
+                <li key={m.id} className="text-sm">
+                  <div className="font-medium text-gray-700">{m.author}</div>
+                  <div className="text-gray-700">{m.text}</div>
+                  <div className="text-xs text-gray-400">
+                    {new Date(m.time || Date.now()).toLocaleTimeString()}
+                  </div>
                 </li>
               ))}
             </ul>
