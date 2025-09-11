@@ -6,14 +6,12 @@ const useQuery = () => {
     return new URLSearchParams(useLocation().search);
 }
 
-export default function Game({ playerCount = 4, socket = null, playerId = null }) {
+export default function Game({ playerCount = 4, socket = null }) {
   const tileCount = playerCount * 3;
-  const [tiles, setTiles] = useState(() =>
-    Array.from({ length: tileCount }, (_, i) => ({ id: i + 1, revealed: false }))
-  );
+  const playerId = socket?.id;
+  const [tiles, setTiles] = useState([]);
   const [pot, setPot] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState(null);
-  // const [players, setPlayers] = useState([]);
   const [loadingPick, setLoadingPick] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -34,7 +32,7 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   useEffect(() => {
     console.log(socket.id, host);
     if (socket.id === host) {
-      socket.emit("game:start", { roomCode, players: players.map(p => p.id) });
+      socket.emit("game:start", { roomCode });
     }
   }, []);
 
@@ -81,12 +79,13 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   }, [socket]);
 
   const handlePick = (tile) => {
+    console.log("Trying to pick tile", tile)
     if (tile.revealed || loadingPick) return;
     if (currentPlayerId && playerId && currentPlayerId !== playerId) return;
 
     setLoadingPick(true);
     if (socket) {
-      socket.emit('pick:tile', { tileId: tile.id, roomCode: roomCode, pot: pot });
+      socket.emit('pick:tile', { tileId: tile.id, roomCode: roomCode });
       console.log("Picking tile", tiles)
     } else {
       setTimeout(() => {

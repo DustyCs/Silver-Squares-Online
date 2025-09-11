@@ -76,18 +76,24 @@ io.on("connection", (socket) => {
     if (!lobbies[roomCode].includes(socket.id)) lobbies[roomCode].push(socket.id);
     io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); 
     
+    // if game already started
+    if (games[roomCode]) {
+      io.to(roomCode).emit("game:init", games[roomCode]);
+    }
+
     if (typeof callback === "function") callback();
   });
 
   // game already started on game:create this is just to initialize the actual game
-  socket.on("game:start", ({ roomCode, players }) => {
+  socket.on("game:start", ({ roomCode }) => {
     console.log("2 Starting the game in room", roomCode)
-    console.log("Players:", players);
+    // console.log("Players:", players);
 
     if (!lobbies[roomCode]) return; // room doesn't exist
+    const roomPlayers = lobbies[roomCode];
 
     // create a tile set for this game
-    const tileCount = players.length * 3; // 3 tiles per player
+    const tileCount = roomPlayers.length * 3; // 3 tiles per player
     const tiles: Tiles[] = Array.from({ length: tileCount }, (_, i) => ({
       id: i + 1,
       type: "silver",       // type hidden until revealed
@@ -95,20 +101,21 @@ io.on("connection", (socket) => {
     }));
 
     // choose random first player
-    const currentPlayerId = players[Math.floor(Math.random() * players.length)];
+    const currentPlayerId = roomPlayers[Math.floor(Math.random() * roomPlayers.length)];
 
     // const payload = { 
     //   host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId 
     // };
 
     // save game state
-    games[roomCode] = { roomCode, players, host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId };
+    games[roomCode] = { roomCode, players: roomPlayers, host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId };
 
     io.to(roomCode).emit("game:init", games[roomCode]);
 
   })
 
-  socket.on("pick:tile", ({tileId, roomCode, pot}) => {
+  socket.on("pick:tile", ({tileId, roomCode }) => {
+    console.log("Picking tile", tileId, roomCode)
     const game = games[roomCode];
     if (!game) return;
     if (!lobbies[roomCode]) return;
@@ -117,10 +124,16 @@ io.on("connection", (socket) => {
     if (!tile || tile.revealed) return;
 
     // silver for now
-    tile.type = "silver";
+    // tile.type = "silver";
+    tile.type = getRandomTileType();
     tile.revealed = true;
     tile.revealedBy = socket.id;
-    game.pot += 100;
+    // game.pot += 100;
+
+    if (tile.type === "silver") game.pot += 100;
+    else if (tile.type === "black") game.pot -= 50;
+    else if (tile.type === "empty") game.pot += 0;
+    else if (tile.type === "bonus") game.pot += 200;
 
     // next player
 
@@ -157,6 +170,14 @@ io.on("connection", (socket) => {
 
 });
 
+// helper
+function getRandomTileType(): "silver" | "black" | "empty" | "bonus" {
+  const rand = Math.random();
+  if (rand < 0.5) return "silver";     // 50%
+  if (rand < 0.7) return "black";      // 20%
+  if (rand < 0.9) return "empty";      // 20%
+  return "bonus";                      // 10%
+}
 
 
 app.use(express.json());
