@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useGameContext } from "../../contexts/useGameContext";
 
 const useQuery = () => {
     return new URLSearchParams(useLocation().search);
@@ -12,42 +13,54 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
   );
   const [pot, setPot] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState(null);
+  // const [players, setPlayers] = useState([]);
   const [loadingPick, setLoadingPick] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
+
+  const { host, players } = useGameContext();
   const [turns, setTurns] = useState(0);
   const navigate = useNavigate();
   const query = useQuery();
   const [roomCode] = useState(query.get("roomCode") || null);
-
-  // socket = null // testing
 
   const gridCols = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tileCount));
     return Math.min(Math.max(cols, 3), 6); // clamp between 3 and 6
   }, [tileCount]);
 
+  // Start the game
+  useEffect(() => {
+    console.log(socket.id, host);
+    if (socket.id === host) {
+      socket.emit("game:start", { roomCode, players });
+    }
+  }, []);
+
   useEffect(() => {
     if (!socket) return; 
 
+    // Initilizes the game, first player, pot, and sets the tiles
     const handleInit = (payload) => {
       if (payload.tiles) setTiles(payload.tiles.map(t => ({ ...t, revealed: !!t.revealed })));
       if (typeof payload.pot === 'number') setPot(payload.pot);
-      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
+      if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId); // need to fix this yes so the first player is random
     };
 
+    // Reveals the tile and updates the pot
     const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot }) => {
       setTiles(prev => prev.map(t => t.id === tileId ? { ...t, revealed: true, type, revealedBy } : t));
       if (typeof newPot === 'number') setPot(newPot);
+      console.log("Tile revealed:", tileId, type, revealedBy, newPot);
       setLoadingPick(false);
     };
 
+    // Updates the game state - pot and the next player to play
     const handleGameUpdate = (payload) => {
       if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
-      if (typeof payload.pot === 'number') setPot(payload.pot);
+      if (typeof payload.pot === 'number') setPot(payload.pot); // redundant? cause it's already set in handleTileRevealed
     };
-    // setMessages(prev => [...prev, { id: Date.now(), author: playerId || 'You', text, time: new Date().toISOString() }]);
     const handleChat = (msg) => {
       console.log("Received message:", msg);
       setMessages(prev => [...prev, msg])
@@ -72,7 +85,8 @@ export default function Game({ playerCount = 4, socket = null, playerId = null }
 
     setLoadingPick(true);
     if (socket) {
-      socket.emit('pick:tile', { tileId: tile.id });
+      socket.emit('pick:tile', { tileId: tile.id, roomCode: roomCode, pot: pot });
+      console.log("Picking tile", tiles)
     } else {
       setTimeout(() => {
         const outcomes = ['silver', 'black', 'empty', 'bonus'];

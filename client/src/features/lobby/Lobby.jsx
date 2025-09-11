@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSocket } from "../../contexts/useSocket";
+import { useGameContext } from "../../contexts/useGameContext";
 import cryptoRandomString from 'crypto-random-string';
 
 const useQuery = () => { // make this a custom hook
@@ -15,8 +16,10 @@ export default function Lobby({
     { id: 4, name: "Player 4" },
   ],
 }) {
-    const [players, setPlayers] = useState(initialPlayers);
-    const [host, setHost] = useState(null);
+    // const [players, setPlayers] = useState(initialPlayers);
+    const {players, setPlayers} = useGameContext();
+    // const [host, setHost] = useState(null);
+    const {host, setHost} = useGameContext();
     const [copied, setCopied] = useState(false);
     const [isHost, setIsHost] = useState(false); // redundant
     
@@ -43,14 +46,6 @@ export default function Lobby({
     useEffect(() => {
         if (!socket) return;
 
-        // const handleLobbyUpdate = (lobbyState, host) => {
-        //     console.log("Lobby update:", lobbyState, host);
-        //     setPlayers(
-        //         lobbyState.players.map((id, idx) => ({ id, name: `Player ${idx + 1}` }))
-        //     )
-        //     setHost(host);
-        //     console.log("Players:", players, "Host:", host);
-        // };
         const handleLobbyUpdate = ({ players, host }) => {
                 console.log("Lobby update:", players, host);
                 setPlayers(players.map((id, idx) => ({ id, name: `Player ${idx + 1}` })));
@@ -85,7 +80,7 @@ export default function Lobby({
     }, [socket, roomCode, players]);
 
 
-    useEffect(() => { // this doesnt really have to be in useeffect ? unless i have some side effects
+    useEffect(() => { // this doesnt really have to be in useeffect and just placed in the component and let it update on render ? unless i have some side effects 
         console.log("Players state updated:", players);
         console.log("Host state updated:", host);
 

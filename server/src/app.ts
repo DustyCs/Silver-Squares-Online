@@ -4,6 +4,23 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 dotenv.config();
 
+type Game = {
+  roomCode: string,
+  players: string[],
+  host: string,
+  pot: number,
+  tiles: Tiles[],
+  currentPlayerId: string,
+  turns: number
+}
+
+type Tiles = {
+  tileId: number,
+  type: "silver" | "black" | "empty" | "bonus",
+  revealed: boolean,
+  revealedBy?: string
+}
+
 const app = express();
 const httpServer = createServer(app)
 
@@ -20,7 +37,9 @@ const io = new Server(httpServer, {
   allowEIO3: true
 });
 
+const games: Record<string, Game> = {};
 const lobbies: Record<string, string[]> = {}; 
+
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
@@ -53,19 +72,46 @@ io.on("connection", (socket) => {
     socket.join(roomCode);
 
     if (!lobbies[roomCode]) lobbies[roomCode] = [];
-
-    // lobbies[roomCode].push(data.playerId);
     // send server socket id instead 
     if (!lobbies[roomCode].includes(socket.id)) lobbies[roomCode].push(socket.id);
-
-    // update lobby state
-    io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); // the first player is the host
-
-    
-    // socket.to(roomCode).emit("player:join", { playerId: data.playerId });
+    io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); 
     
     if (typeof callback === "function") callback();
   });
+
+  // game already started on game:create this is just to initialize the actual game
+  socket.on("game:start", ({ roomCode, players }) => {
+    console.log("2 Starting the game in room", roomCode)
+    console.log("Players:", players);
+
+    if (!lobbies[roomCode]) return; // room doesn't exist
+
+    // create a tile set for this game
+    const tileCount = players.length * 3; // 3 tiles per player
+    const tiles = Array.from({ length: tileCount }, (_, i) => ({
+      id: i + 1,
+      type: null,       // type hidden until revealed
+      revealed: false,  // nothing revealed at start
+    }));
+
+    // choose random first player
+    const currentPlayerId = players[Math.floor(Math.random() * players.length)];
+
+    const payload = { 
+      host: lobbies[roomCode][0], pot: 0, tiles, turns: 0, currentPlayerId 
+    };
+
+    io.to(roomCode).emit("game:init", payload);
+
+  })
+
+  socket.on("pick:tile", ({tileId, roomCode, pot}) => {
+    if (!lobbies[roomCode]) return;
+    // tileId, type, revealedBy, pot: newPot
+    io.to(roomCode).emit("tile:revealed", { tileId, type: "silver", revealedBy: socket.id, pot: pot + 100 });
+    console.log("Picking tile", tileId, roomCode, pot);
+  
+  })
 
   socket.on("host:start", ({roomCode}) => {
     console.log("Starting the game in room", roomCode)
