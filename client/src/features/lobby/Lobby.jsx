@@ -14,10 +14,11 @@ export default function Lobby({
     { id: 3, name: "Player 3" },
     { id: 4, name: "Player 4" },
   ],
-  isHost = false
 }) {
     const [players, setPlayers] = useState(initialPlayers);
+    const [host, setHost] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [isHost, setIsHost] = useState(false); // redundant
     
 
     const navigate = useNavigate();
@@ -42,22 +43,31 @@ export default function Lobby({
     useEffect(() => {
         if (!socket) return;
 
-        const handleLobbyUpdate = (lobbyState) => {
-            console.log("Lobby update:", lobbyState);
-            setPlayers(
-                lobbyState.players.map((id, idx) => ({ id, name: `Player ${idx + 1}` }))
-            )
-        };
+        // const handleLobbyUpdate = (lobbyState, host) => {
+        //     console.log("Lobby update:", lobbyState, host);
+        //     setPlayers(
+        //         lobbyState.players.map((id, idx) => ({ id, name: `Player ${idx + 1}` }))
+        //     )
+        //     setHost(host);
+        //     console.log("Players:", players, "Host:", host);
+        // };
+        const handleLobbyUpdate = ({ players, host }) => {
+                console.log("Lobby update:", players, host);
+                setPlayers(players.map((id, idx) => ({ id, name: `Player ${idx + 1}` })));
+                setHost(host);
+            };
 
         const handlePlayerJoin = ({playerId}) => {
-            console.log("Player joined:", playerId);
-            const player = { id: playerId, name: `Player ${players.length + 1}` };
-            setPlayers((prevPlayers) => [...prevPlayers, player]);
+            setPlayers((prevPlayers) => [
+                ...prevPlayers,
+                { id: playerId, name: `Player ${prevPlayers.length + 1}` }
+            ]);
         };
 
         const handlePlayerLeave = (playerId) => {
-            console.log("Player left:");
-            setPlayers((prevPlayers) => prevPlayers.filter((p) => p.id !== playerId));
+            setPlayers((prevPlayers) =>
+                prevPlayers.filter((p) => p.id !== playerId)
+            );
         };
         
         socket.on("lobby:update", handleLobbyUpdate);
@@ -67,8 +77,22 @@ export default function Lobby({
 
         return () => {
         console.log("Cleanup socket listeners");
+        socket.off("lobby:update", handleLobbyUpdate);
+        socket.off("player:join", handlePlayerJoin);
+        socket.off("player:leave", handlePlayerLeave);
+
         };
-    }, [socket, roomCode]);
+    }, [socket, roomCode, players]);
+
+
+    useEffect(() => {
+        console.log("Players state updated:", players);
+        console.log("Host state updated:", host);
+
+        setIsHost(host === socket.id);
+        console.log("Is host:", isHost);
+
+        }, [players, host]);
 
 
     const copyRoomCode = async () => {
@@ -111,10 +135,10 @@ export default function Lobby({
                         <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center font-medium">
                         {String(idx + 1)}
                         </div>
-                        <span className="font-medium">{player.name}</span>
+                        <span className="font-medium">{player.id}</span>
                     </div>
                     {/* Host badge */}
-                    {idx === 0 && (
+                    {player.id === host && (
                         <span className="text-sm px-2 py-1 bg-yellow-100 rounded-full">Host</span>
                     )}
                     </li>
@@ -156,7 +180,7 @@ export default function Lobby({
             <div className="mt-6 flex gap-3">
                 <button
                 onClick={handleStart}
-                //   disabled={!isHost} // Uncomment to restrict to host only
+                  disabled={!isHost} 
                 className={`flex-1 py-3 rounded-lg font-semibold transition-transform active:scale-95 disabled:opacity-50 ${
                     isHost ? "bg-blue-600 text-white shadow" : "bg-gray-200 text-gray-600"
                 }`}
@@ -177,3 +201,9 @@ export default function Lobby({
         </div>
     );
     }
+
+
+    // TODO
+    // MAKE ONLY HOST COULD START CAUSE RN EVERYONE CAN
+    // HOST CANT SEE THE ROOM CODE ON LOBBY URL NEED FIX
+    // MORE GAME CORES TOMMOROW
