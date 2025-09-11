@@ -39,23 +39,20 @@ export default function Game({ playerCount = 4, socket = null }) {
   useEffect(() => {
     if (!socket) return; 
 
-    // Initilizes the game, first player, pot, and sets the tiles
     const handleInit = (payload) => {
       if (payload.tiles) setTiles(payload.tiles.map(t => ({ ...t, revealed: !!t.revealed })));
       if (typeof payload.pot === 'number') setPot(payload.pot);
-      // TODO THIS CAUSES PROBLEMS
       if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId); // need to fix this yes so the first player is random
     };
 
-    // Reveals the tile and updates the pot
-    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot }) => {
+    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot, currentPlayerId }) => {
       setTiles(prev => prev.map(t => t.id === tileId ? { ...t, revealed: true, type, revealedBy } : t));
       if (typeof newPot === 'number') setPot(newPot);
+      if (currentPlayerId) setCurrentPlayerId(currentPlayerId);
       console.log("Tile revealed:", tileId, type, revealedBy, newPot);
       setLoadingPick(false);
     };
 
-    // Updates the game state - pot and the next player to play
     const handleGameUpdate = (payload) => {
       if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId);
       if (typeof payload.pot === 'number') setPot(payload.pot); // redundant? cause it's already set in handleTileRevealed
@@ -156,7 +153,8 @@ export default function Game({ playerCount = 4, socket = null }) {
           {/* <div className="mt-4 text-sm text-gray-500">Current turn: {currentPlayerId || 'waiting...'}</div> */}
           <div className="mt-4 text-sm text-gray-500">
             Current turn: {
-              players.find(p => p.id === currentPlayerId)?.name || currentPlayerId || 'waiting...'
+              // players.find(p => p.id === currentPlayerId)?.name || currentPlayerId || 'waiting...'
+              currentPlayerId || 'waiting...'
             }
           </div>
         </div>

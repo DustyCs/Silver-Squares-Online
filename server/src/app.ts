@@ -14,6 +14,11 @@ type Game = {
   // turns: number
 }
 
+type Player = {
+  id: string,
+  name: string
+}
+
 type Tiles = {
   id: number,
   type: "silver" | "black" | "empty" | "bonus",
