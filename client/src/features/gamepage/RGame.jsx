@@ -36,6 +36,29 @@ export default function Game({ playerCount = 4, socket = null }) {
     }
   }, []);
 
+  // Kick off the game
+  useEffect(() => {
+    if (!socket || !roomCode) {
+      navigate("/");
+      return;
+    }
+
+    // try to rejoin the room
+    socket.emit("game:join", { roomCode }, () => {
+      console.log("Rejoined", roomCode);
+    });
+
+    // if server says room not found, redirect
+    socket.on("game:notfound", () => {
+      console.log("Room not found, redirecting...");
+      navigate("/");
+    });
+
+    return () => {
+      socket.off("game:notfound");
+    };
+  }, [socket, roomCode, navigate]);
+
   useEffect(() => {
     if (!socket) return; 
 
@@ -66,6 +89,11 @@ export default function Game({ playerCount = 4, socket = null }) {
     socket.on('tile:revealed', handleTileRevealed);
     socket.on('game:update', handleGameUpdate);
     socket.on('chat:message', handleChat);
+
+    socket.on("disconnect", () => {
+      window.location.href = "/";
+    });
+
 
     return () => {
       socket.off('game:init', handleInit);
