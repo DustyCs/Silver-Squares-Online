@@ -6,12 +6,16 @@ dotenv.config();
 
 type Game = {
   roomCode: string,
-  players: string[],
+  players: string[], // active players
+  eliminated?: string[], // voted out
   host: string,
   pot: number,
   tiles: Tiles[],
   currentPlayerId: string,
-  // turns: number
+  turns: number,
+  phase: "tiles" | "final" | "over" | "vote",
+  votes?: Record<string, number>
+  finalChoices?: Record<string, "split" | "steal">
 }
 
 type Player = {
@@ -125,7 +129,11 @@ io.on("connection", (socket) => {
     // };
 
     // save game state
-    games[roomCode] = { roomCode, players: roomPlayers, host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId };
+    games[roomCode] = { 
+      roomCode, players: roomPlayers, eliminated: [], host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId, turns: 0, phase: "tiles" 
+    };
+
+    console.log("Game started:", games[roomCode]);
 
     io.to(roomCode).emit("game:init", games[roomCode]);
 
@@ -152,16 +160,105 @@ io.on("connection", (socket) => {
     else if (tile.type === "empty") game.pot += 0;
     else if (tile.type === "bonus") game.pot += 200;
 
+    game.turns += 1;
+
     // next player
 
     const currentindex = game.players.indexOf(socket.id);
     const nextindex = (currentindex + 1) % game.players.length;
     game.currentPlayerId = game.players[nextindex];
 
-    io.to(roomCode).emit("tile:revealed", { tileId, type: tile.type, revealedBy: tile.revealedBy, pot: game.pot, currentPlayerId: game.currentPlayerId });
+    io.to(roomCode).emit("tile:revealed", { tileId, type: tile.type, revealedBy: tile.revealedBy, pot: game.pot, currentPlayerId: game.currentPlayerId, turns: game.turns });
     console.log("Picking tile", tileId, roomCode, game.pot, game.currentPlayerId);
   
+
+    if (game.tiles.every(t => t.revealed)) {
+      game.phase = "vote";
+      io.to(roomCode).emit("game:vote", { pot: game.pot, players: game.players });
+    }
+
   })
+
+  socket.on("vote:submit", ({ roomCode, voter, voted }) => {
+    console.log("Voting", voted, roomCode, voter);
+    const game = games[roomCode];
+    console.log("Phase", game.phase);
+    
+    if (!game || game.phase !== "vote") return;
+    console.log("Passed phase check");
+    console.log("Players", game.players);
+
+    if (!game.players.includes(socket.id)) return;
+    console.log("Passed player check");
+
+    if (!game.players.includes(voted)) return;
+    console.log("Passed voted check");
+
+    game.votes = game.votes || {};
+    game.votes[socket.id] = voted;
+
+    if (Object.keys(game.votes).length === game.players.length) {
+      const tally: Record<string, number> = {};
+      for (const t of Object.values(game.votes)) {
+        tally[t] = (tally[t] || 0) + 1;
+      }
+
+      const maxVotes = Math.max(...Object.values(tally));
+      const candidates = Object.entries(tally)
+      .filter(([_, v]) => v === maxVotes)
+      .map(([id]) => id);
+
+      const eliminated = candidates[Math.floor(Math.random() * candidates.length)]; // randomly eliminate one if tie
+
+      game.players = game.players.filter(p => p !== eliminated);
+
+      if (!game.eliminated) game.eliminated = [];
+
+      game.eliminated.push(eliminated);
+      game.votes = {};
+
+      io.to(roomCode).emit("player:eliminated", { eliminated, players: game.players, eliminatedList: game.eliminated });
+
+      if (game.players.length === 2){
+        game.phase = "final";
+        io.to(roomCode).emit("final:start", { pot: game.pot, players: game.players });
+      } else{
+        io.to(roomCode).emit("voting:next", { players: game.players });
+      }
+
+    }
+
+  })
+
+  socket.on("final:choice", ({ roomCode, choice }) => {
+    const game = games[roomCode];
+    if (!game || game.phase !== "final") return;
+    
+    game.finalChoices = game.finalChoices || {};
+    game.finalChoices[socket.id] = choice;
+
+    // If both have chosen
+    if (Object.keys(game.finalChoices).length === 2) {
+      const [p1, p2] = game.players;
+      const c1 = game.finalChoices[p1];
+      const c2 = game.finalChoices[p2];
+      let result;
+
+      if (c1 === "split" && c2 === "split") {
+        result = { winner: "both", payout: game.pot / 2 };
+      } else if (c1 === "steal" && c2 === "split") {
+        result = { winner: p1, payout: game.pot };
+      } else if (c1 === "split" && c2 === "steal") {
+        result = { winner: p2, payout: game.pot };
+      } else {
+        result = { winner: null, payout: 0 }; // both steal
+      }
+
+      game.phase = "over";
+      io.to(roomCode).emit("game:over", { pot: game.pot, result });
+    }
+  });
+  
 
   socket.on("host:start", ({roomCode}) => {
     console.log("Starting the game in room", roomCode)

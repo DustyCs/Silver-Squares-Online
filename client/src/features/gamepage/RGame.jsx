@@ -19,6 +19,8 @@ export default function Game({ playerCount = 4, socket = null }) {
 
   const { host, players } = useGameContext();
   const [turns, setTurns] = useState(0);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [gamePhase, setGamePhase] = useState("tiles");
   const navigate = useNavigate();
   const query = useQuery();
   const [roomCode] = useState(query.get("roomCode") || null);
@@ -69,11 +71,12 @@ export default function Game({ playerCount = 4, socket = null }) {
       if (payload.currentPlayerId) setCurrentPlayerId(payload.currentPlayerId); // need to fix this yes so the first player is random
     };
 
-    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot, currentPlayerId }) => {
+    const handleTileRevealed = ({ tileId, type, revealedBy, pot: newPot, currentPlayerId, turns }) => {
       setTiles(prev => prev.map(t => t.id === tileId ? { ...t, revealed: true, type, revealedBy } : t));
       if (typeof newPot === 'number') setPot(newPot);
       if (currentPlayerId) setCurrentPlayerId(currentPlayerId);
-      console.log("Tile revealed:", tileId, type, revealedBy, newPot);
+      if (typeof turns === 'number') setTurns(turns);
+      console.log("Tile revealed:", tileId, type, revealedBy, newPot, currentPlayerId, turns);
       setLoadingPick(false);
     };
 
@@ -86,10 +89,22 @@ export default function Game({ playerCount = 4, socket = null }) {
       setMessages(prev => [...prev, msg])
     };
 
+    const handleGameFinal = (payload) => {
+      console.log("Game final:", payload);
+    };
+
+    const handleVoteGame = (payload) => {
+      setGamePhase("vote");
+      console.log("Vote game:", payload);
+    };
+
     socket.on('game:init', handleInit);
     socket.on('tile:revealed', handleTileRevealed);
     socket.on('game:update', handleGameUpdate);
     socket.on('chat:message', handleChat);
+
+    socket.on('game:final', handleGameFinal);
+    socket.on('game:vote', handleVoteGame);
 
     socket.on("disconnect", () => {
       window.location.href = "/";
@@ -114,14 +129,15 @@ export default function Game({ playerCount = 4, socket = null }) {
       socket.emit('pick:tile', { tileId: tile.id, roomCode: roomCode });
       console.log("Picking tile", tiles)
     } else {
-      setTimeout(() => {
-        const outcomes = ['silver', 'black', 'empty', 'bonus'];
-        const type = outcomes[Math.floor(Math.random() * outcomes.length)];
-        const revealed = { tileId: tile.id, type, revealedBy: playerId || 'local', pot: pot + (type === 'silver' ? 100 : (type === 'black' ? -50 : 0)) };
-        setTiles(prev => prev.map(t => t.id === tile.id ? { ...t, revealed: true, type, revealedBy: revealed.revealedBy } : t));
-        setPot(revealed.pot);
-        setLoadingPick(false);
-      }, 700);
+      console.log("Simulating pick");
+      // setTimeout(() => {
+      //   const outcomes = ['silver', 'black', 'empty', 'bonus'];
+      //   const type = outcomes[Math.floor(Math.random() * outcomes.length)];
+      //   const revealed = { tileId: tile.id, type, revealedBy: playerId || 'local', pot: pot + (type === 'silver' ? 100 : (type === 'black' ? -50 : 0)) };
+      //   setTiles(prev => prev.map(t => t.id === tile.id ? { ...t, revealed: true, type, revealedBy: revealed.revealedBy } : t));
+      //   setPot(revealed.pot);
+      //   setLoadingPick(false);
+      // }, 700);
     }
   };
 
@@ -179,13 +195,66 @@ export default function Game({ playerCount = 4, socket = null }) {
             ))}
           </div>
 
-          {/* <div className="mt-4 text-sm text-gray-500">Current turn: {currentPlayerId || 'waiting...'}</div> */}
           <div className="mt-4 text-sm text-gray-500">
             Current turn: {
-              // players.find(p => p.id === currentPlayerId)?.name || currentPlayerId || 'waiting...'
               currentPlayerId || 'waiting...'
             }
           </div>
+          {/* Voting section */}
+            <div className={`flex flex-col gap-2 ${ gamePhase === 'vote' ? 'block' : 'hidden'} `}>
+              <h2 className="text-lg font-semibold">Vote a player out</h2>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                }}
+                className="space-y-2"
+              >
+                {players.map((player) => (
+                  <div key={player.id} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id={player.id}
+                      name="vote"
+                      value={player.id}
+                      checked={selectedPlayer === player.id}
+                      onChange={() => setSelectedPlayer(player.id)}
+                      className="cursor-pointer"
+                    />
+                    <label
+                      htmlFor={player.id}
+                      className="cursor-pointer text-gray-700 hover:text-gray-900"
+                    >
+                      {player.id}
+                    </label>
+                  </div>
+                ))}
+
+                <button
+                  type="submit"
+                  disabled={!selectedPlayer}
+                  className={`border-2 p-2 rounded-md transition 
+                    ${
+                      selectedPlayer
+                        ? "text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110"
+                        : "text-gray-400 border-gray-300 cursor-not-allowed bg-gray-100"
+                    }`}
+                    onClick={() => {
+                      if (selectedPlayer) {
+                        socket.emit("vote:submit", {
+                          roomCode,
+                          voter: playerId,
+                          voted: selectedPlayer,
+                        });
+
+                        setGamePhase("tiles");
+                      }
+                    }}
+                >
+                  Vote
+                </button>
+              </form>
+            </div>
         </div>
 
         <div className="w-full md:w-96 flex flex-col">
