@@ -191,6 +191,16 @@ io.on("connection", (socket) => {
       .filter(([_, v]) => v === maxVotes)
       .map(([id]) => id);
 
+      // check if there's only 2 player move straight to final
+
+      if(game.players.length === 2){
+        game.phase = "final";
+        console.log("Moving to final game");
+        io.to(roomCode).emit("final:start", { pot: game.pot, players: game.players });
+        return;
+      }
+
+      // else eliminate then continue
       const eliminated = candidates[Math.floor(Math.random() * candidates.length)]; // randomly eliminate one if tie
 
       game.players = game.players.filter(p => p !== eliminated);

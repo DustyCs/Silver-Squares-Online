@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSocket } from "../../contexts/useSocket";
 import { useGameContext } from "../../contexts/useGameContext";
@@ -27,7 +27,7 @@ export default function Lobby({
     const navigate = useNavigate();
     const query = useQuery();
     const [roomCode, setRoomCode] = useState(query.get("roomCode") || null);
-
+    const alertTimeoutRef = useRef(null);
     const socket = useSocket();
 
     useEffect(() => {
@@ -76,12 +76,26 @@ export default function Lobby({
         socket.on("player:join", handlePlayerJoin);
         socket.on("player:leave", handlePlayerLeave);
         socket.on("game:start", handleGameStart);
+        socket.on("game:notenough", (message) => {
+            // If there's already a timer, skip showing another alert
+            if (alertTimeoutRef.current) return;
+
+            alert(message.message);
+
+            // Block further alerts for 2 seconds (adjust as needed)
+            alertTimeoutRef.current = setTimeout(() => {
+                alertTimeoutRef.current = null;
+            }, 2000);
+        })
 
         return () => {
         console.log("Cleanup socket listeners");
         socket.off("lobby:update", handleLobbyUpdate);
         socket.off("player:join", handlePlayerJoin);
         socket.off("player:leave", handlePlayerLeave);
+        socket.off("game:start", handleGameStart);
+        socket.off("game:notenough", handleGameStart);
+
 
         };
     }, [socket, roomCode, players]);

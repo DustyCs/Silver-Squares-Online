@@ -266,6 +266,17 @@ export default function Game({ playerCount = 4, socket = null }) {
                 </button>
               </form>
             </div>
+
+          {/* Final Section Split or Steal */}
+            <div className={`flex flex-col gap-2 ${ gamePhase === 'final' ? 'block' : 'hidden'} `}>
+                <div>
+                    <h2 className="text-lg font-semibold">Final Decision</h2>
+                    <div className="flex gap-2">
+                        <button onClick={() => { handleFinalGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Split</button>
+                        <button onClick={() => { handleFinalGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Steal</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div className="w-full md:w-96 flex flex-col">
