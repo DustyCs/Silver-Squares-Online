@@ -169,7 +169,6 @@ io.on("connection", (socket) => {
       game.phase = "vote";
       io.to(roomCode).emit("game:vote", { pot: game.pot, players: game.players });
     }
-
   })
 
   socket.on("vote:submit", ({ roomCode, voter, voted }) => {
@@ -256,6 +255,51 @@ io.on("connection", (socket) => {
     }
   });
   
+  socket.on("player:final:choice", ({ roomCode, playerId, choice }) => {
+      const game = games[roomCode];
+      if (!game || game.phase !== "final") return;
+
+      // save choice
+      game.finalChoices = game.finalChoices || {};
+      game.finalChoices[playerId] = choice;
+
+      // check if both players have chosen
+      if (Object.keys(game.finalChoices).length === 2) {
+        const [p1, p2] = Object.keys(game.finalChoices);
+        const c1 = game.finalChoices[p1];
+        const c2 = game.finalChoices[p2];
+
+        let result;
+
+        if (c1 === "split" && c2 === "split") {
+          result = {
+            message: "Both players split the pot!",
+            winners: [p1, p2],
+            pot: game.pot / 2
+          };
+        } else if (c1 === "steal" && c2 === "steal") {
+          result = {
+            message: "Both players tried to steal. Nobody wins!",
+            winners: [],
+            pot: 0
+          };
+        } else {
+          // one steals, one splits
+          const stealer = c1 === "steal" ? p1 : p2;
+          result = {
+            message: `${stealer} stole the pot!`,
+            winners: [stealer],
+            pot: game.pot
+          };
+        }
+
+        // emit final result to room
+        io.to(roomCode).emit("final:result", result);
+
+        // (optional) reset or archive the game
+        // delete games[roomCode];
+      }
+  });
 
   socket.on("host:start", ({roomCode, players}) => {
     console.log("Starting the game in room", roomCode, players)

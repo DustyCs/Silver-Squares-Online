@@ -125,6 +125,11 @@ export default function Game({ playerCount = 4, socket = null }) {
       setGamePhase("final");
     };
 
+    const handleFinalResult = ({ message, winners, pot }) => {
+      console.log("Final result", message, winners, pot);
+      setGamePhase("final result", { message, winners, pot });
+    }
+
     socket.on('game:init', handleInit);
     socket.on('tile:revealed', handleTileRevealed);
     socket.on('game:update', handleGameUpdate);
@@ -135,6 +140,7 @@ export default function Game({ playerCount = 4, socket = null }) {
     socket.on('player:eliminated', handlePlayerElimation);
     socket.on("voting:next", handleContinueVoteGame);
     socket.on("final:start", handleFinalGame);
+    socket.on("final:result", handleFinalResult);
 
     socket.on("disconnect", () => {
       window.location.href = "/";
@@ -148,6 +154,16 @@ export default function Game({ playerCount = 4, socket = null }) {
       socket.off('chat:message', handleChat);
     };
   }, [socket]);
+
+    const handleSplitGame = () => {
+      console.log("Split game");
+      socket.emit("player:final:choice", { roomCode, playerId: socket.id, choice: "split" });
+    }
+
+    const handleStealGame = () => {
+      console.log("Steal game");
+      socket.emit("player:final:choice", { roomCode, playerId: socket.id, choice: "steal" });
+    }
 
   const handlePick = (tile) => {
     console.log("Trying to pick tile", tile)
@@ -283,8 +299,8 @@ export default function Game({ playerCount = 4, socket = null }) {
                 <div>
                     <h2 className="text-lg font-semibold">Final Decision</h2>
                     <div className="flex gap-2">
-                        <button onClick={() => { handleFinalGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Split</button>
-                        <button onClick={() => { handleFinalGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Steal</button>
+                        <button onClick={() => { handleSplitGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Split</button>
+                        <button onClick={() => { handleStealGame() }} className="border-2 p-2 rounded-md transition text-gray-500 border-gray-700 cursor-pointer hover:bg-gray-400 hover:text-gray-100 active:scale-110">Steal</button>
                     </div>
                 </div>
             </div>
