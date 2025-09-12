@@ -95,7 +95,14 @@ export default function Game({ playerCount = 4, socket = null }) {
     };
 
     const handleVoteGame = (payload) => {
+      // if player count is 2 auto emit immediately
+      if (playerCount === 2) {
+        socket.emit("vote:submit", { roomCode, voter: playerId, voted: selectedPlayer}); // empty vote
+        return;
+      }
+      
       setGamePhase("vote");
+      
       console.log("Vote game:", payload);
     };
 
@@ -106,6 +113,10 @@ export default function Game({ playerCount = 4, socket = null }) {
 
     const handleContinueVoteGame = () => {
       console.log("Continue vote game");
+      if (playerCount === 2) {
+        socket.emit("vote:submit", { roomCode, voter: playerId, voted: selectedPlayer}); // empty vote
+        return;
+      }
       setGamePhase("vote");
     };
 

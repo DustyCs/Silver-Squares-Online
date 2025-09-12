@@ -160,8 +160,12 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("tile:revealed", { tileId, type: tile.type, revealedBy: tile.revealedBy, pot: game.pot, currentPlayerId: game.currentPlayerId, turns: game.turns });
     console.log("Picking tile", tileId, roomCode, game.pot, game.currentPlayerId);
   
+    if(game.tiles.every(t => t.revealed) && game.players.length === 2){
+      game.phase = "final";
+      io.to(roomCode).emit("final:start", { pot: game.pot, players: game.players });
+    }
 
-    if (game.tiles.every(t => t.revealed)) {
+    if (game.tiles.every(t => t.revealed) && game.players.length > 2) {
       game.phase = "vote";
       io.to(roomCode).emit("game:vote", { pot: game.pot, players: game.players });
     }
