@@ -21,6 +21,7 @@ export default function Game({ playerCount = 4, socket = null }) {
   const [turns, setTurns] = useState(0);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [gamePhase, setGamePhase] = useState("tiles");
+  const [elimatedPlayers, setEliminatedPlayers] = useState([]);
   const navigate = useNavigate();
   const query = useQuery();
   const [roomCode] = useState(query.get("roomCode") || null);
@@ -98,6 +99,21 @@ export default function Game({ playerCount = 4, socket = null }) {
       console.log("Vote game:", payload);
     };
 
+    const handlePlayerElimation = ({ eliminated, players, eliminatedList }) => {
+      console.log("Player eliminated:", eliminated, players, eliminatedList);
+      setEliminatedPlayers(eliminatedList);
+    };
+
+    const handleContinueVoteGame = () => {
+      console.log("Continue vote game");
+      setGamePhase("vote");
+    };
+
+    const handleFinalGame = () => {
+      console.log("Final game");
+      setGamePhase("final");
+    };
+
     socket.on('game:init', handleInit);
     socket.on('tile:revealed', handleTileRevealed);
     socket.on('game:update', handleGameUpdate);
@@ -105,6 +121,9 @@ export default function Game({ playerCount = 4, socket = null }) {
 
     socket.on('game:final', handleGameFinal);
     socket.on('game:vote', handleVoteGame);
+    socket.on('player:eliminated', handlePlayerElimation);
+    socket.on("voting:next", handleContinueVoteGame);
+    socket.on("final:start", handleFinalGame);
 
     socket.on("disconnect", () => {
       window.location.href = "/";
@@ -130,14 +149,6 @@ export default function Game({ playerCount = 4, socket = null }) {
       console.log("Picking tile", tiles)
     } else {
       console.log("Simulating pick");
-      // setTimeout(() => {
-      //   const outcomes = ['silver', 'black', 'empty', 'bonus'];
-      //   const type = outcomes[Math.floor(Math.random() * outcomes.length)];
-      //   const revealed = { tileId: tile.id, type, revealedBy: playerId || 'local', pot: pot + (type === 'silver' ? 100 : (type === 'black' ? -50 : 0)) };
-      //   setTiles(prev => prev.map(t => t.id === tile.id ? { ...t, revealed: true, type, revealedBy: revealed.revealedBy } : t));
-      //   setPot(revealed.pot);
-      //   setLoadingPick(false);
-      // }, 700);
     }
   };
 
@@ -259,18 +270,6 @@ export default function Game({ playerCount = 4, socket = null }) {
 
         <div className="w-full md:w-96 flex flex-col">
           <h2 className="text-lg font-semibold mb-3">Player Chat</h2>
-          {/* <div className="flex-1 border rounded-lg p-2 mb-2 overflow-auto h-72">
-            {messages.length === 0 && <div className="text-sm text-gray-400">No messages yet — say hi 👋</div>}
-            <ul className="space-y-2">
-              {messages.map((m) => (
-                <li key={m.id} className="text-sm">
-                  <div className="font-medium text-gray-700">{m.author}</div>
-                  <div className="text-gray-700">{m.text}</div>
-                  <div className="text-xs text-gray-400">{new Date(m.time || Date.now()).toLocaleTimeString()}</div>
-                </li>
-              ))}
-            </ul>
-          </div> */}
           <div className="border rounded-lg p-2 mb-2 h-72 overflow-y-auto custom-scroll">
             {messages.length === 0 && (
               <div className="text-sm text-gray-400">No messages yet — say hi 👋</div>

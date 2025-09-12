@@ -68,11 +68,14 @@ export default function Lobby({
                 prevPlayers.filter((p) => p.id !== playerId)
             );
         };
-        
+
+        const handleGameStart = () => {
+            navigate('/game?roomCode=' + roomCode)
+        }
         socket.on("lobby:update", handleLobbyUpdate);
         socket.on("player:join", handlePlayerJoin);
         socket.on("player:leave", handlePlayerLeave);
-        socket.on("game:start", () => navigate('/game?roomCode=' + roomCode));
+        socket.on("game:start", handleGameStart);
 
         return () => {
         console.log("Cleanup socket listeners");
@@ -106,8 +109,8 @@ export default function Lobby({
 
     const handleStart = () => {
         if (!roomCode) return;
-        navigate('/game?roomCode=' + roomCode);
-        socket.emit("host:start", { roomCode: roomCode });
+        // navigate('/game?roomCode=' + roomCode);
+        socket.emit("host:start", { roomCode: roomCode, players: players });
         console.log("Start game")
     };
 

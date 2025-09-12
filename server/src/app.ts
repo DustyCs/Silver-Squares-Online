@@ -67,7 +67,6 @@ io.on("connection", (socket) => {
     lobbies[roomCode] = [socket.id]; // create the room with the first player(host)
     socket.join(roomCode);
 
-    // io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode] });
     // update lobby state
     io.to(roomCode).emit("lobby:update", { players: lobbies[roomCode], host: lobbies[roomCode][0] }); // the first player is the host
 
@@ -83,10 +82,6 @@ io.on("connection", (socket) => {
     if (!lobbies[roomCode]) lobbies[roomCode] = [];
     // send server socket id instead 
 
-    // if (!lobbies[roomCode].includes(socket.id)) {
-    //   socket.emit("game:notfound"); // client navigates back to /
-    //   return;
-    // }
     if (games[roomCode]) {
       if (!games[roomCode].players.includes(socket.id)) {
         socket.emit("game:notfound"); // client navigates back to /
@@ -105,12 +100,11 @@ io.on("connection", (socket) => {
     if (typeof callback === "function") callback();
   });
 
-  // game already started on game:create this is just to initialize the actual game
   socket.on("game:start", ({ roomCode }) => {
     console.log("2 Starting the game in room", roomCode)
     // console.log("Players:", players);
 
-    if (!lobbies[roomCode]) return; // room doesn't exist
+    if (!lobbies[roomCode]) return;
     const roomPlayers = lobbies[roomCode];
 
     // create a tile set for this game
@@ -121,13 +115,8 @@ io.on("connection", (socket) => {
       revealed: false,  // nothing revealed at start
     }));
 
-    // choose random first player
+
     const currentPlayerId = roomPlayers[Math.floor(Math.random() * roomPlayers.length)];
-
-    // const payload = { 
-    //   host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId 
-    // };
-
     // save game state
     games[roomCode] = { 
       roomCode, players: roomPlayers, eliminated: [], host: lobbies[roomCode][0], pot: 0, tiles, currentPlayerId, turns: 0, phase: "tiles" 
@@ -182,17 +171,11 @@ io.on("connection", (socket) => {
   socket.on("vote:submit", ({ roomCode, voter, voted }) => {
     console.log("Voting", voted, roomCode, voter);
     const game = games[roomCode];
-    console.log("Phase", game.phase);
-    
     if (!game || game.phase !== "vote") return;
-    console.log("Passed phase check");
     console.log("Players", game.players);
-
     if (!game.players.includes(socket.id)) return;
-    console.log("Passed player check");
-
     if (!game.players.includes(voted)) return;
-    console.log("Passed voted check");
+
 
     game.votes = game.votes || {};
     game.votes[socket.id] = voted;
@@ -260,8 +243,13 @@ io.on("connection", (socket) => {
   });
   
 
-  socket.on("host:start", ({roomCode}) => {
-    console.log("Starting the game in room", roomCode)
+  socket.on("host:start", ({roomCode, players}) => {
+    console.log("Starting the game in room", roomCode, players)
+    if (Object.keys(players).length < 2) {
+      console.log("Not enough players to start the game");
+      socket.emit("game:notenough", { message: "Need at least 2 players to start." });
+      return;
+    }
     if (!lobbies[roomCode]) return;
     // make sure the host is the one who started the game
     if (lobbies[roomCode][0] !== socket.id) return;
