@@ -294,9 +294,11 @@ io.on("connection", (socket) => {
         }
 
         // emit final result to room
+        io.to(roomCode).emit("chat:message", { id: Date.now(), author: 'Server', text: result.message, time: new Date().toISOString() });
         io.to(roomCode).emit("final:result", result);
 
         // (optional) reset or archive the game
+        // currently the game lives forever in memory until it's down
         // delete games[roomCode];
       }
   });

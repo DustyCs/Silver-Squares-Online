@@ -41,6 +41,8 @@ export default function Lobby({
             console.log("Room code:", code); 
             socket.emit("game:create", { roomCode: code }, () => { console.log("Room created") }); // why im i passing this as an object...?
         }
+
+        document.title = "Lobby";
     }, []);
 
     useEffect(() => {

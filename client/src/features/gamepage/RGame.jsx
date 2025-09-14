@@ -25,6 +25,11 @@ export default function Game({ playerCount = 4, socket = null }) {
   const navigate = useNavigate();
   const query = useQuery();
   const [roomCode] = useState(query.get("roomCode") || null);
+  const [finalResult, setFinalResult] = useState({
+    message: null,
+    winners: null,
+    pot: 0
+  });
 
   const gridCols = useMemo(() => {
     const cols = Math.ceil(Math.sqrt(tileCount));
@@ -92,6 +97,7 @@ export default function Game({ playerCount = 4, socket = null }) {
 
     const handleGameFinal = (payload) => {
       console.log("Game final:", payload);
+      setGamePhase("end");
     };
 
     const handleVoteGame = (payload) => {
@@ -127,7 +133,11 @@ export default function Game({ playerCount = 4, socket = null }) {
 
     const handleFinalResult = ({ message, winners, pot }) => {
       console.log("Final result", message, winners, pot);
-      setGamePhase("final result", { message, winners, pot });
+      setGamePhase("end");
+      
+      setFinalResult({ message, winners, pot });
+
+
     }
 
     socket.on('game:init', handleInit);
@@ -203,7 +213,7 @@ export default function Game({ playerCount = 4, socket = null }) {
             className={`grid gap-2 w-full`}
             style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}
           >
-            {tiles.map((tile) => (
+            { gamePhase != "endgame" && tiles.map((tile) => (
               <button
                 key={tile.id}
                 onClick={() => handlePick(tile)}
@@ -231,6 +241,17 @@ export default function Game({ playerCount = 4, socket = null }) {
                 )}
               </button>
             ))}
+            {
+              gamePhase === "endgame" ? (
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-lg font-semibold">
+                    Game Ended
+                  </div>
+                </div>
+              )
+              :
+              null
+            }
           </div>
 
           <div className="mt-4 text-sm text-gray-500">
@@ -339,6 +360,31 @@ export default function Game({ playerCount = 4, socket = null }) {
           </div>
         </div>
       </div>
+      {/* Result */}
+      {finalResult && (
+        <div
+          className={`absolute top-0 left-0 w-full h-full 
+                      ${gamePhase === 'end' ? 'flex' : 'hidden'} 
+                      justify-center items-center 
+                      bg-[rgba(20,83,45,0.6)]`}
+
+          onClick={() => setGamePhase('endgame')}
+        >
+          <div className="text-center text-white">
+            <h2 className="text-4xl font-bold mb-2">
+              {finalResult.message ?? 'Loading...'}
+            </h2>
+
+            <p>
+              {finalResult.winners?.length > 1
+                ? `Winners: ${finalResult.winners.join(' and ')}`
+                : `Winner: ${finalResult.winners?.[0] ?? ''}`}
+            </p>
+
+            <p>Pot: {finalResult.pot}</p>
+          </div>
+        </div>
+    )}
     </div>
   );
 }
