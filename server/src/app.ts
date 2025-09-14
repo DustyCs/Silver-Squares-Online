@@ -18,10 +18,6 @@ type Game = {
   finalChoices?: Record<string, "split" | "steal">
 }
 
-type Player = {
-  id: string,
-  name: string
-}
 
 type Tiles = {
   id: number,
@@ -40,7 +36,7 @@ console.log("Setting up socket.io server...")
 
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://silversquaresonline.web.app/"],
     methods: ["GET", "POST"] 
   },
   allowEIO3: true
