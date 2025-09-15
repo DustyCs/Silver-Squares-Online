@@ -45,6 +45,12 @@ const io = new Server(httpServer, {
 const games: Record<string, Game> = {};
 const lobbies: Record<string, string[]> = {}; 
 
+// health check
+app.route("/").get((req, res) => {
+  res.send({
+    serverUp: true
+  });
+})
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);

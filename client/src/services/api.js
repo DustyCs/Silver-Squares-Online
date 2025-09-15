@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'https://rps-online-h2c8.onrender.com/api',
+  baseURL: 'https://silver-squares-online.onrender.com',
   withCredentials: true, 
   headers: {
     'Content-Type': 'application/json',

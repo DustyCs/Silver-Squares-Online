@@ -1,12 +1,31 @@
 import { useNavigate } from "react-router-dom"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import apiClient from "../../../services/api"
 
 export default function Homepage() {
     const navigate = useNavigate()
     const [roomCode, setRoomCode] = useState('')
+    const [serverStatus, setServerStatus] = useState(false)
+
+    useEffect(() => {
+      // Send health req to server to check if it's up
+      apiClient.get('/').then((serverUp) => {
+        if (serverUp.status === 200) {
+          console.log("Server is up")
+          setServerStatus(true)
+        }
+      }).catch(() => {
+        console.log("Server is down")
+        setServerStatus(false)
+      })
+    }, [])
     
     const handleJoin = () => {
         if (roomCode.trim()) {
+            if (!serverStatus) {
+                alert("Server is starting. Try again in a few seconds")
+                return
+            }
             navigate(`/lobby?roomCode=${roomCode}`)
         }
     }

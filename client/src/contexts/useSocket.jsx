@@ -9,7 +9,7 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (socket) return; // already connected
 
-    const newSocket = io("http://localhost:4000", {
+    const newSocket = io("https://silver-squares-online.onrender.com", {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: Infinity,
