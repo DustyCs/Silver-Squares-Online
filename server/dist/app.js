@@ -16,7 +16,7 @@ console.log("Setting up socket.io server...");
 const io = new socket_io_1.Server(httpServer, {
     cors: {
         origin: ["http://localhost:5173", "https://silversquaresonline.web.app/"],
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
     },
     allowEIO3: true
 });

@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import { createServer } from "http";
+import cors from "cors";
 dotenv.config();
 
 type Game = {
@@ -33,6 +34,12 @@ console.log("Server started... trying to run")
 
 // Socket.io server setup
 console.log("Setting up socket.io server...")
+
+app.use(cors({
+  origin: ["http://localhost:5173", "https://silversquaresonline.web.app"],
+  methods: ["GET", "POST"],
+  credentials: true,
+}));
 
 const io = new Server(httpServer, {
   cors: {
